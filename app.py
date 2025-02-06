@@ -11,7 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 os.environ["TOKENIZERS_PARALLELISM"] = os.getenv("TOKENIZERS_PARALLELISM", "false")
 
@@ -22,28 +22,28 @@ logging.basicConfig(
 )
 
 def load_pdf(pdf_path):
-    """Carga un archivo PDF y devuelve su contenido."""
+    """Loads a PDF file and returns its content."""
     if not os.path.exists(pdf_path):
-        logging.error(f"Archivo no encontrado: {pdf_path}")
-        raise FileNotFoundError(f"El archivo '{pdf_path}' no existe.")
+        logging.error(f"File not found: {pdf_path}")
+        raise FileNotFoundError(f"The file '{pdf_path}' does not exist.")
     
-    logging.info(f"Cargando PDF: {pdf_path}")
+    logging.info(f"Loading PDF: {pdf_path}")
     try:
         loader = PDFPlumberLoader(pdf_path)
         return loader.load()
     except Exception as e:
-        logging.error(f"Error cargando PDF: {e}")
+        logging.error(f"Error loading PDF: {e}")
         return []
 
 def process_document(docs, embedder, cache_name):
-    """Procesa documentos y guarda los chunks en caché."""
+    """Processes documents and saves the chunks in cache."""
     cache_path = f"{cache_name}.pkl"
     if os.path.exists(cache_path):
-        logging.info(f"Cargando caché de {cache_name}...")
+        logging.info(f"Loading cache for {cache_name}...")
         with open(cache_path, 'rb') as cache_file:
             return pickle.load(cache_file)
     
-    logging.info(f"Dividiendo {cache_name} en chunks semánticos...")
+    logging.info(f"Splitting {cache_name} into semantic chunks...")
     text_splitter = SemanticChunker(embedder)
     chunks = text_splitter.split_documents(docs)
 
@@ -53,16 +53,16 @@ def process_document(docs, embedder, cache_name):
     return chunks
 
 def create_vector_store(documents, embedder, index_name, num_documents=10):
-    """Crea un índice FAISS para recuperación de contexto."""
-    logging.info(f"Creando índice FAISS para {index_name}...")
+    """Creates a FAISS index for context retrieval."""
+    logging.info(f"Creating FAISS index for {index_name}...")
     index_path = f"faiss_{index_name}"
     
     if os.path.exists(index_path):
         try:
             vector = FAISS.load_local(index_path, embedder, allow_dangerous_deserialization=True)
-            logging.info(f"Índice FAISS cargado: {index_name}")
+            logging.info(f"FAISS index loaded: {index_name}")
         except Exception as e:
-            logging.warning(f"Error cargando FAISS {index_name}: {e}. Reconstruyendo...")
+            logging.warning(f"Error loading FAISS {index_name}: {e}. Rebuilding...")
             vector = FAISS.from_documents(documents, embedder)
             vector.save_local(index_path)
     else:
@@ -72,8 +72,8 @@ def create_vector_store(documents, embedder, index_name, num_documents=10):
     return vector.as_retriever(search_type="similarity", search_kwargs={"k": num_documents})
 
 def configure_llm():
-    """Configura el modelo de IA para análisis legal."""
-    logging.info("Cargando modelo LLM...")
+    """Configures the AI model for legal analysis."""
+    logging.info("Loading LLM model...")
     return ChatOpenAI(
         model="o1",
         openai_api_key=os.getenv("OPENAI_API_KEY"),
@@ -84,7 +84,7 @@ def configure_llm():
 
 
 def analyze_sentence(sentence_retriever, codes_retriever, llm):
-    """Realiza el análisis legal con contexto persistente."""
+    """Performs legal analysis with persistent context."""
     prompt_template = PromptTemplate(
         template="""
         **Objective:**
@@ -101,9 +101,9 @@ def analyze_sentence(sentence_retriever, codes_retriever, llm):
         input_variables=["context_codes", "context_sentence"]
     )
 
-    logging.info("Recuperando contexto de la sentencia...")
-    sentence_context = sentence_retriever.invoke("Analiza esta sentencia")
-    codes_context = codes_retriever.invoke("Proporciona fundamentos legales")
+    logging.info("Retrieving sentence context...")
+    sentence_context = sentence_retriever.invoke("Analyze this sentence")
+    codes_context = codes_retriever.invoke("Provide legal grounds")
     
     response = llm.invoke(
         prompt_template.format(
@@ -115,7 +115,7 @@ def analyze_sentence(sentence_retriever, codes_retriever, llm):
     generate_markdown_report(response.content)
 
 def generate_markdown_report(content):
-    """Genera un informe en Markdown."""
+    """Generates a Markdown report."""
     os.makedirs("./reports", exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     md_path = f"./reports/result_{timestamp}.md"
@@ -123,7 +123,7 @@ def generate_markdown_report(content):
     with open(md_path, 'w', encoding='utf-8') as md_file:
         md_file.write(content)
     
-    logging.info(f"El informe ha sido guardado en '{md_path}'")
+    logging.info(f"The report has been saved in '{md_path}'")
 
 def main():
     try:
