@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -169,3 +170,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+=======
+*.log
+*.tmp
+node_modules/
+.DS_Store
+>>>>>>> a525954 (feat(main): initial project of lawly)
